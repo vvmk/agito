@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+
+DESC=""
+PRIVATE=false
+AINIT=false
+GITIGNORE="None"
+CLONETARGET=""
+
+POSITIONAL=()
+while [[ $# -gt 0 ]]
+do
+    key="$1"
+
+    case $key in
+        -t|--token)
+            TOKEN="$2"
+            shift
+            shift
+            ;;
+        -n|--name)
+            NAME="$2"
+            shift 
+            shift
+            ;;
+        -d|--description)
+            DESC="$2"
+            shift
+            shift
+            ;;
+        -p|--private)
+            PRIVATE=true
+            shift 
+            ;;
+        -g|--gitignore)
+            GITIGNORE="$2"
+            shift
+            shift
+            ;;
+        -a|--auto-init)
+            AINIT=true
+            shift
+            ;;
+        -c|--clone)
+            CLONETARGET="$2"
+            shift
+            shift
+            ;;
+        *)
+            POSITIONAL+=("$1")
+            shift
+            ;;
+    esac
+done
+set -- "${POSITIONAL[@]}"
+
+if [[ -z $NAME || -z $TOKEN ]]
+then echo "usage: newrepo -t <token> -n <name> [--description <desc>, --private, --gitignore]\n" \
+        "ERROR: both a valid token  repo name are required"
+else
+    until CURLOUT=$(curl -i -H "Authorization: token $TOKEN" \
+        -d "{\"name\":\"$NAME\",\
+                \"description\":\"$DESC\",\
+                \"private\":$PRIVATE,\
+                \"auto_init\":$AINIT,\
+                \"gitignore_template\":\"$GITIGNORE\",\
+            \"}" \
+            https://api.github.com/user/repos)
+    do
+        printf '.'
+        sleep 1
+    done
+    # <<< "$CURLOUT" awk -F'[[:space:]]*:[[:space:]]*' '/[[:space:]]*"clone_url"/{ print $2 }'
+    # cat curlout.log | awk -F'[[:space:]]*:[[:space:]]*' '/^[[:space:]]*"clone_url"/{ print $2 }'
+    # echo $CLONEURL
+    # git clone $CLONEURL $CLONETARGET
+fi
+
